@@ -15,10 +15,12 @@ public class ApplicationMain {
     private static final int PORT = 3333;
 
     public static void main(String[] args){
+        ObjectInputStream input = null;
+        ObjectOutputStream output = null;
         try(Socket client = new Socket(SERVER, PORT)){
             System.out.println("Connected to server: " + client.getRemoteSocketAddress());
-            ObjectInputStream input = new ObjectInputStream((client.getInputStream()));
-            ObjectOutputStream output = new ObjectOutputStream(client.getOutputStream());
+            input = new ObjectInputStream((client.getInputStream()));
+            output = new ObjectOutputStream(client.getOutputStream());
 
             new Thread(new MessageHandler(input)).start();
 
@@ -28,6 +30,20 @@ public class ApplicationMain {
         }
         catch(Exception e){
             e.printStackTrace();
+        }
+        finally{
+            try {
+                if(input != null) input.close();
+            }
+            catch(IOException ioe){
+                System.err.println("Error during inputstream closing!");
+            }
+            try {
+                if(output != null) output.close();
+            }
+            catch(IOException ioe) {
+                System.err.println("Error during outputstream closing!");
+            }
         }
     }
 
@@ -66,11 +82,11 @@ public class ApplicationMain {
         }
     }
 
-    static class MessageHandler implements Runnable {
+    private static class MessageHandler implements Runnable {
 
         private final ObjectInputStream input;
 
-        public MessageHandler(ObjectInputStream input){
+        MessageHandler(ObjectInputStream input){
             this.input = input;
         }
 
@@ -98,7 +114,7 @@ public class ApplicationMain {
             }
             else if(msg instanceof ListMessage){
                 System.out.println("Messageboard content:");
-                ((ListMessage)msg).getBoardMessages().stream().forEach(m -> {
+                ((ListMessage)msg).getBoardMessages().forEach(m -> {
                     System.out.println("\tAuthor: " + m.getAuthor() + " - Message: " + m.getMessage());
                 });
             }
